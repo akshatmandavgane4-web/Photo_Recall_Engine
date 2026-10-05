@@ -1,0 +1,25 @@
+{
+ "collected": 5844,
+ "keyword_pass": 1036,
+ "labelled": 533,
+ "labels": {
+  "not_relevant": 352,
+  "feature_request": 55,
+  "data_loss": 24,
+  "incident": 85,
+  "rejected": 17
+ },
+ "incidents": 83,
+ "audit_n": 30,
+ "audit_stage_correct": 24,
+ "models": {
+  "openai/gpt-oss-120b": 40,
+  "openai/gpt-oss-20b": 22,
+  "claude (labelled in session)": 21
+ },
+ "sources_collected": {
+  "play_store": 3839,
+  "app_store": 1717,
+  "reddit": 288
+ }
+}
