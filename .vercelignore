@@ -1,8 +1,9 @@
 # The Streamlit version lives in the same repository; Vercel only needs public/ and api/.
-*.py
-requirements.txt
-.streamlit
-pipeline
-incidents.jsonl
-stats.json
-extraction.md
+# Leading slashes keep these rules to the top level, so public/stats.json is still deployed.
+/*.py
+/requirements.txt
+/.streamlit
+/pipeline
+/incidents.jsonl
+/stats.json
+/extraction.md
