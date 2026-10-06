@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Recall · Discovery Engine</title>
+<meta name="description" content="Structured evidence on why people fail to find photos they remember, built from public feedback about Google Photos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fcf9f8;color:#1b1b1c;font-family:'DM Sans',Arial,sans-serif;font-size:15px;line-height:1.45}
+a{color:#0041a2}
+button{font-family:inherit;cursor:pointer}
+.strip{position:fixed;top:0;left:0;right:0;height:4px;z-index:50;background:linear-gradient(90deg,#4285F4 0 25%,#EA4335 25% 50%,#FBBC04 50% 75%,#34A853 75% 100%)}
+.shell{display:flex;min-height:100vh}
+.side{width:248px;flex:none;background:#f6f3f2;border-right:1px solid #e5e2e1;padding:28px 14px;position:sticky;top:0;height:100vh}
+.side nav{display:flex;flex-direction:column;gap:4px}
+.side button{all:unset;cursor:pointer;padding:11px 14px;border-radius:10px;font-size:16px;font-weight:500;color:#424654}
+.side button:hover{background:#eae7e7}
+.side button:focus-visible{outline:2px solid #0b57d0;outline-offset:2px}
+.side button[aria-current="page"]{background:#0b57d0;color:#fff}
+.side .foot{font-size:12px;color:#424654;margin:28px 14px 0;line-height:1.5}
+.main{flex:1;min-width:0;padding:24px 40px 120px;max-width:1280px}
+.label{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#424654;margin:6px 0 10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.brand{font-size:22px;font-weight:600;display:flex;align-items:center;gap:10px}
+.badge{font-size:12px;font-weight:500;color:#424654;background:#eae7e7;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.tiles{display:flex;gap:8px;flex-wrap:wrap}
+.tile{background:#fff;border:1px solid #c3c6d6;border-radius:10px;padding:6px 12px;font-size:13px;color:#424654}
+.tile b{font-size:20px;font-weight:700;margin-right:6px}
+h1{font-size:30px;font-weight:600;letter-spacing:-.02em;margin:0 0 4px}
+.sub{color:#424654;margin:0 0 18px;max-width:820px}
+.card{background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(27,27,28,.06),0 1px 8px rgba(27,27,28,.04)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g5{grid-template-columns:repeat(5,minmax(0,1fr))}.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
+.chip{border-radius:999px;border:1px solid #c3c6d6;background:#fff;color:#1b1b1c;font-weight:500;font-size:14px;padding:9px 16px}
+.chip:hover{border-color:#0b57d0;color:#0b57d0;background:#f3f6fd}
+.user{display:flex;justify-content:flex-end;margin:10px 0 14px}
+.user span{background:#e5e2e1;border-radius:18px 18px 4px 18px;padding:10px 18px;font-size:16px;max-width:75%}
+.answer{font-size:17px;line-height:1.55;white-space:pre-line}
+.cite{font-size:12px;font-weight:600;color:#0041a2;background:#dae2ff;border-radius:6px;padding:1px 6px;margin:0 2px}
+.panel{background:#f6f3f2;border-radius:14px;padding:16px 18px;margin-top:16px}
+.bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:#e5e2e1;margin:8px 0 12px}
+.mini{background:#fff;border-radius:10px;padding:10px 12px}
+.mini .n{font-size:26px;font-weight:700;line-height:1.15}
+.mini .l{font-size:12px;color:#424654;display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.quote{background:#f6f3f2;border-radius:14px;padding:14px 16px}
+.quote .q{font-style:italic;line-height:1.45;margin:10px 0}
+.quote a{font-size:13px;font-weight:500;text-decoration:none}
+.num{background:#0041a2;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.tag{font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stage h3{font-size:20px;font-weight:500;margin:12px 0 6px}
+.stage .big{font-size:30px;font-weight:700}
+.muted{font-size:13px;color:#424654;line-height:1.45;margin:0}
+.track{height:6px;border-radius:999px;background:#e5e2e1;overflow:hidden;margin-top:8px}
+.track div{height:100%}
+.brow{display:flex;justify-content:space-between;font-size:14px;margin-top:12px}
+.note{background:#fff4d6;border-radius:16px;padding:18px 22px;color:#261a00;margin-top:16px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#424654;padding:10px 8px;background:#f6f3f2;text-align:left}
+td{padding:11px 8px;border-bottom:1px solid #eae7e7;vertical-align:top}
+.num-col th:not(:first-child),.num-col td:not(:first-child){text-align:right}
+.rows tr{cursor:pointer}.rows tr:hover td{background:#f3f6fd}
+.step .n{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-top:10px}
+.step .t{font-size:20px;font-weight:500;margin:6px 0}
+.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.filters label{font-size:12px;font-weight:600;color:#424654;display:flex;flex-direction:column;gap:4px}
+select{font-family:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:1px solid #c3c6d6;background:#fff;min-width:170px}
+.ask{position:fixed;left:248px;right:0;bottom:0;padding:14px 40px 18px;background:linear-gradient(#fcf9f800,#fcf9f8 30%)}
+.ask form{max-width:1200px;display:flex;gap:10px;background:#fff;border:1px solid #c3c6d6;border-radius:999px;padding:6px 6px 6px 20px;box-shadow:0 2px 12px rgba(27,27,28,.08)}
+.ask input{flex:1;border:0;outline:0;font-family:inherit;font-size:16px;background:transparent;min-width:0}
+.ask button{border:0;border-radius:999px;background:#0b57d0;color:#fff;font-weight:600;font-size:15px;padding:10px 20px}
+.ask button:disabled{background:#c3c6d6}
+.detail{position:fixed;top:0;right:0;bottom:0;width:440px;max-width:100vw;background:#fff;box-shadow:-8px 0 30px rgba(27,27,28,.15);padding:28px 26px;overflow:auto;z-index:60}
+.detail dl{margin:14px 0}.detail dt{font-size:12px;font-weight:600;color:#424654;text-transform:uppercase;letter-spacing:.05em;margin-top:12px}.detail dd{margin:2px 0 0}
+.close{float:right;border:1px solid #c3c6d6;background:#fff;border-radius:999px;padding:6px 14px;font-size:14px}
+@media (max-width:900px){.shell{flex-direction:column}.side{position:static;width:auto;height:auto;padding:14px}.side nav{flex-direction:row;flex-wrap:wrap}.side .foot,.side .label{display:none}
+ .main{padding:18px 16px 130px}.g2,.g3,.g4,.g5,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}.ask{left:0;padding:10px 12px 14px}.tablewrap{overflow-x:auto}}
+</style>
+</head>
+<body>
+<div class="strip"></div>
+<div class="shell">
+  <aside class="side">
+    <div class="label" style="margin-left:14px">Research workspace</div>
+    <nav id="nav" aria-label="Sections"></nav>
+    <div class="foot">No login. Built from public user feedback about Google Photos. Every answer links to its sources.</div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div class="brand">Photo Recall <span class="badge">Discovery Engine</span></div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div id="view">Loading the evidence…</div>
+  </main>
+</div>
+<div class="ask" id="askbar" hidden>
+  <form id="askform"><input id="askinput" maxlength="300" autocomplete="off" aria-label="Your question"
+    placeholder="Ask about retrieval failures, what people remember, sources, stages…"><button id="askbtn">Ask</button></form>
+</div>
+<div id="detail"></div>
+<script src="engine.js"></script>
+<script>
+(function () {
+  var PAGES = ["Ask the evidence", "Opportunity ranking", "All incidents", "How it works"];
+  var STAGE_COLOR = { express: "#B06000", understand: "#0b57d0", evaluate: "#006e2b", refine: "#7b1fa2", unknown: "#737785", none: "#737785" };
+  var SOURCE_COLOR = { reddit: "#EA4335", play_store: "#188038", app_store: "#737785" };
+  var SOURCE_LABEL = { play_store: "Play Store", app_store: "App Store", reddit: "Reddit" };
+  var STAGE_HELP = { express: "Could not put what they remembered into the product.", understand: "Entered clues, but the target never appeared.",
+    evaluate: "Results were hard to scan or recognize.", refine: "Could not adjust after a miss." };
+  var CUE_LABEL = { semantic_content: "What is in the photo", episodic_context: "The occasion", people: "People", relative_time: "Rough time",
+    approx_place: "Rough place", visual_attributes: "How it looked", text_in_image: "Text in the image", source_purpose: "Source or purpose",
+    emotional_situational: "Feeling or meaning" };
+  var EXAMPLES = ["Where in the search journey do people fail most?", "What do users remember about the photo they want?",
+    "Compare Reddit and Play Store on failure stage", "Show quotes where results were hard to scan",
+    "What happens when people search by a person's name?", "What workarounds do people use?"];
+  var data = [], stats = {}, page = PAGES[0], chat = [], busy = false, filt = { failure_stage: "", source: "", photo_type: "", cue: "" };
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function pct(a, b) { return b ? Math.round(a / b * 100) + "%" : "0%"; }
+  function safeUrl(u) { return /^https?:\/\//.test(u || "") ? esc(u) : "#"; }
+  function tag(text, color, dot) {
+    return dot ? '<span class="tag" style="background:#f0eded;color:#424654"><span class="dot" style="background:' + color + '"></span>' + esc(text) + "</span>"
+      : '<span class="tag" style="background:' + color + '1f;color:' + color + '">' + esc(text) + "</span>";
+  }
+  function stageName(s) { return s === "unknown" || s === "none" ? "No stage" : cap(s); }
+
+  function breakdown(rows, title) {
+    var counts = Engine.stageCounts(rows), n = rows.length || 1;
+    var bar = counts.map(function (c) { return c[1] ? '<div style="width:' + (c[1] / n * 100).toFixed(1) + "%;background:" + STAGE_COLOR[c[0]] + '"></div>' : ""; }).join("");
+    var minis = '<div class="mini"><div class="l">Incidents</div><div class="n">' + rows.length + '</div><div class="l">in scope</div></div>' +
+      counts.map(function (c) {
+        return '<div class="mini"><div class="l"><span class="dot" style="background:' + STAGE_COLOR[c[0]] + '"></span>' + stageName(c[0]) +
+          '</div><div class="n" style="color:' + STAGE_COLOR[c[0]] + '">' + c[1] + '</div><div class="l">' + pct(c[1], n) + "</div></div>";
+      }).join("");
+    return '<div class="panel"><div class="label" style="margin:0">' + esc(title) + '</div><div class="bar">' + bar + '</div><div class="grid g6" style="gap:8px">' + minis + "</div></div>";
+  }
+  function evidence(res) {
+    var cited = res.ev.filter(function (x) { return res.cited.indexOf(x.n) >= 0; });
+    if (!cited.length) cited = res.ev.slice(0, 4);
+    if (!cited.length) return "";
+    return '<div class="label" style="margin-top:20px">Evidence cited (' + cited.length + " source" + (cited.length === 1 ? "" : "s") + ')</div><div class="grid g2">' +
+      cited.map(function (x) {
+        return '<div class="quote"><div class="row"><span><span class="num">' + x.n + "</span> " + tag(stageName(x.stage), STAGE_COLOR[x.stage] || "#737785") + "</span>" +
+          tag(SOURCE_LABEL[x.source] || x.source, SOURCE_COLOR[x.source] || "#737785", true) + '</div><div class="q">“' + esc(x.quote) +
+          '”</div><a href="' + safeUrl(x.url) + '" target="_blank" rel="noopener">Open source ↗</a></div>';
+      }).join("") + "</div>";
+  }
+  function answerCard(q, res) {
+    var text = esc(res.answer).replace(/\[(\d+)\]/g, '<span class="cite">[$1]</span>');
+    var scope = Engine.applyFilters(data, Engine.findFilters(q));
+    var html = '<div class="label" style="margin-top:0">' + (res.llm ? "Answer from the evidence" : "Exact counts and closest matches") + '</div><div class="answer">' + text + "</div>";
+    if (res.ev.length) html += breakdown(scope, "Incidents by journey stage · " + scope.length + " in scope") + evidence(res);
+    return '<div class="user"><span>' + esc(q) + '</span></div><div class="card" style="margin-bottom:16px">' + html + "</div>";
+  }
+
+  function viewAsk() {
+    return "<h1>Ask the evidence</h1><p class='sub'>Ask where retrieval breaks, what people remember, or how sources differ. Counts come straight from the incident table.</p>" +
+      '<div class="label">Suggested questions</div><div class="chips">' +
+      EXAMPLES.map(function (e, i) { return '<button class="chip" data-q="' + i + '">' + esc(e) + "</button>"; }).join("") + "</div>" +
+      chat.map(function (t) { return answerCard(t.q, t.res); }).join("") +
+      (busy ? '<div class="card"><span class="muted">Reading the evidence…</span></div>' : "");
+  }
+  function viewRanking() {
+    var N = data.length, counts = Engine.stageCounts(data), top = counts.slice(0, 4).sort(function (a, b) { return b[1] - a[1]; })[0][0];
+    var later = {}; data.forEach(function (r) { if (r.secondary_stage) later[r.secondary_stage] = (later[r.secondary_stage] || 0) + 1; });
+    var cards = Engine.STAGES.map(function (s, i) {
+      var v = counts[i][1], hot = s === top;
+      return '<div class="card stage" style="' + (hot ? "border:2px solid #0b57d0;background:#f3f6fd" : "") + '"><div style="text-align:right">' +
+        (hot ? '<span class="tag" style="background:#0b57d0;color:#fff">Most incidents</span>' : '<span class="badge">Stage ' + (i + 1) + "</span>") +
+        '</div><div><span class="big" style="color:' + STAGE_COLOR[s] + '">' + v + '</span> <span style="color:#424654">incidents · ' + pct(v, N) + "</span></div>" +
+        '<div class="track"><div style="width:' + (v / N * 100) + "%;background:" + STAGE_COLOR[s] + '"></div></div><h3>' + cap(s) + '</h3><p class="muted">' + STAGE_HELP[s] + "</p>" +
+        (later[s] ? '<p class="muted" style="margin-top:8px;color:#737785">' + later[s] + " more as a later break</p>" : "") + "</div>";
+    }).join("");
+    var cues = Engine.tally(data, function (r) { return r.cues; }), mx = cues.length ? cues[0][1] : 1;
+    var stated = data.filter(function (r) { return r.cues.length; }).length;
+    var bars = cues.map(function (c) {
+      return '<div class="brow"><span>' + esc(CUE_LABEL[c[0]] || c[0]) + '</span><span><b style="color:#0041a2">' + c[1] + '</b> incidents</span></div><div class="track"><div style="width:' + (c[1] / mx * 100) + '%;background:#0b57d0"></div></div>';
+    }).join("");
+    var cols = Engine.STAGES.concat(["unknown"]);
+    var srcs = Engine.tally(data, function (r) { return r.source; });
+    var body = srcs.map(function (s) {
+      var c = Engine.stageCounts(data.filter(function (r) { return r.source === s[0]; }));
+      return "<tr><td><span class='dot' style='background:" + (SOURCE_COLOR[s[0]] || "#737785") + "'></span> " + esc(SOURCE_LABEL[s[0]] || s[0]) + "</td>" + c.map(function (x) { return "<td>" + x[1] + "</td>"; }).join("") + "</tr>";
+    }).join("") + "<tr style='font-weight:700;background:#f6f3f2'><td>Total</td>" + counts.map(function (x) { return "<td>" + x[1] + "</td>"; }).join("") + "</tr>";
+    return "<h1>Opportunity ranking</h1><p class='sub'>Where retrieval breaks across the four stages of a search, what people remembered, and how the sources differ. " + N + " Google Photos incidents.</p>" +
+      '<div class="label">Retrieval journey, in order</div><div class="grid g4" style="margin-bottom:16px">' + cards + "</div>" +
+      '<div class="grid g2"><div class="card"><div style="font-size:20px;font-weight:500">What people said they remembered</div><p class="muted">' + stated + " of " + N +
+      " incidents state a memory. One incident can state several.</p>" + bars + "</div>" +
+      '<div class="card"><div style="font-size:20px;font-weight:500">Failure stage by source</div><p class="muted" style="margin-bottom:12px">Shown per source so one channel\'s bias is visible. ' +
+      counts[4][1] + ' incidents have no determinable stage.</p><div class="tablewrap"><table class="num-col"><tr><th>Source</th>' + cols.map(function (s) { return "<th>" + (s === "unknown" ? "None" : cap(s)) + "</th>"; }).join("") + "</tr>" + body + "</table></div></div></div>" +
+      '<div class="note"><b>Read with care.</b> The Reddit threads were picked from discussions of search quality, so <i>Understand</i> is over-represented. Treat this ranking as hypotheses to check with users, not as proof.</div>';
+  }
+  function filtered() {
+    return data.filter(function (r) {
+      return (!filt.failure_stage || r.failure_stage === filt.failure_stage) && (!filt.source || r.source === filt.source) &&
+        (!filt.photo_type || r.photo_type === filt.photo_type) && (!filt.cue || r.cues.indexOf(filt.cue) >= 0);
+    });
+  }
+  function viewIncidents() {
+    var opt = function (key, label, values, names) {
+      return "<label>" + label + '<select data-f="' + key + '"><option value="">All</option>' + values.map(function (v) {
+        return '<option value="' + esc(v) + '"' + (filt[key] === v ? " selected" : "") + ">" + esc(names ? names[v] || v : v) + "</option>";
+      }).join("") + "</select></label>";
+    };
+    var uniq = function (k) { return Engine.tally(data, function (r) { return r[k]; }).map(function (x) { return x[0]; }).sort(); };
+    var rows = filtered();
+    return "<h1>All incidents</h1><p class='sub'>Every structured incident, with its quote and a link to the original post. Select a row for the full record.</p>" +
+      '<div class="filters">' + opt("failure_stage", "Failure stage", uniq("failure_stage")) + opt("source", "Source", uniq("source"), SOURCE_LABEL) +
+      opt("photo_type", "Photo type", uniq("photo_type")) + opt("cue", "Remembered cue", Object.keys(CUE_LABEL), CUE_LABEL) + "</div>" +
+      '<div class="label">' + rows.length + " of " + data.length + ' incidents</div><div class="card" style="padding:8px"><div class="tablewrap"><table class="rows"><tr><th>Stage</th><th>Source</th><th>Photo type</th><th>Outcome</th><th>Severity</th><th>What they remembered</th><th>Quote</th></tr>' +
+      rows.map(function (r) {
+        return '<tr tabindex="0" data-id="' + esc(r.incident_id) + '"><td>' + tag(stageName(r.failure_stage), STAGE_COLOR[r.failure_stage] || "#737785") + "</td><td>" + esc(SOURCE_LABEL[r.source] || r.source) +
+          "</td><td>" + esc(r.photo_type) + "</td><td>" + esc(r.outcome) + "</td><td>" + r.severity + " of 5</td><td>" + esc(r.cue_quotes || "not stated") + "</td><td><i>“" + esc(r.verbatim) + "”</i></td></tr>";
+      }).join("") + "</table></div></div>";
+  }
+  function viewHow() {
+    var L = stats.labels, sc = stats.sources_collected, tot = 0; Object.keys(sc).forEach(function (k) { tot += sc[k]; });
+    var steps = [[stats.collected.toLocaleString("en-US"), "#1b1b1c", "Collect", "Public posts and reviews about Google Photos. Author names are hashed."],
+      [stats.keyword_pass.toLocaleString("en-US"), "#1b1b1c", "Filter", "Keep posts that mention finding or searching for photos."],
+      [stats.labelled, "#0041a2", "Label", "A language model reads each post, one call per post, and sorts it."],
+      [stats.incidents, "#ba1a1a", "Extract", "Retrieval incidents in a fixed schema. " + data.length + " are about Google Photos."],
+      [pct(stats.audit_stage_correct, stats.audit_n), "#006e2b", "Audit", stats.audit_stage_correct + " of " + stats.audit_n + " randomly sampled failure stages were correct when checked by hand."]];
+    var src = Object.keys(sc).sort(function (a, b) { return sc[b] - sc[a]; }).map(function (k) {
+      return '<div class="brow"><span><span class="dot" style="background:' + (SOURCE_COLOR[k] || "#737785") + '"></span> ' + esc(SOURCE_LABEL[k] || k) + "</span><span><b>" + sc[k].toLocaleString("en-US") + "</b> (" + pct(sc[k], tot) +
+        ')</span></div><div class="track"><div style="width:' + (sc[k] / tot * 100) + "%;background:" + (SOURCE_COLOR[k] || "#737785") + '"></div></div>';
+    }).join("");
+    var models = Object.keys(stats.models).map(function (k) { return esc(k) + " (" + stats.models[k] + ")"; }).join(", ");
+    return "<h1>How it works</h1><p class='sub'>How public reviews and posts are collected, filtered, labelled by AI and audited.</p><div class='label'>Pipeline</div>" +
+      '<div class="grid g5" style="margin-bottom:16px">' + steps.map(function (s, i) {
+        return '<div class="card step"><span class="badge">Step ' + (i + 1) + '</span><div class="n" style="color:' + s[1] + '">' + s[0] + '</div><div class="t">' + s[2] + '</div><p class="muted">' + s[3] + "</p></div>";
+      }).join("") + "</div>" +
+      '<div class="grid g3" style="margin-bottom:16px"><div class="card"><div style="font-size:20px;font-weight:500">Sources</div>' + src + '<p class="muted" style="margin-top:14px">Reddit is 16 threads, split into posts and replies.</p></div>' +
+      '<div class="card"><div style="font-size:20px;font-weight:500">Quality checks</div><div class="panel"><b>Quotes are verbatim.</b><p class="muted">Every quote must appear word for word in the source post, or the record is rejected.</p></div>' +
+      '<div class="panel"><b>Values are constrained.</b><p class="muted">Stage, photo type and cue types come from fixed lists. ' + L.rejected + " records failed validation and were dropped.</p></div>" +
+      '<div class="panel"><b>What was set aside.</b><p class="muted">' + L.not_relevant + " not relevant, " + L.feature_request + " feature requests, " + L.data_loss + " about lost photos (nothing to retrieve).</p></div></div>" +
+      '<div class="card"><div style="font-size:20px;font-weight:500">Limits</div><p><b>Small sample.</b> ' + stats.incidents + " incidents; " + (stats.keyword_pass - stats.labelled).toLocaleString("en-US") + " filtered posts are not yet labelled.</p>" +
+      "<p><b>Skewed.</b> Reddit threads came from search-quality discussions; public posters are mostly frustrated, English-speaking, heavy users.</p>" +
+      "<p><b>Thin detail.</b> Most posts do not say what kind of photo was sought or what was remembered.</p><p><b>More than one labeller.</b> " + models + ".</p></div></div>" +
+      '<div class="label">The four journey stages</div><div class="grid g4">' + Engine.STAGES.map(function (s, i) {
+        return '<div class="card stage"><span class="badge">Stage ' + (i + 1) + '</span><h3 style="color:' + STAGE_COLOR[s] + '">' + cap(s) + '</h3><p class="muted">' + STAGE_HELP[s] + "</p></div>";
+      }).join("") + "</div>";
+  }
+  function showDetail(id) {
+    var r = data.filter(function (x) { return x.incident_id === id; })[0];
+    if (!r) { $("detail").innerHTML = ""; return; }
+    var row = function (k, v) { return v ? "<dt>" + k + "</dt><dd>" + esc(v) + "</dd>" : ""; };
+    $("detail").innerHTML = '<div class="detail" role="dialog" aria-label="Incident detail"><button class="close" id="closedetail">Close</button>' +
+      tag(stageName(r.failure_stage), STAGE_COLOR[r.failure_stage] || "#737785") + " " + tag(SOURCE_LABEL[r.source] || r.source, SOURCE_COLOR[r.source] || "#737785", true) +
+      '<p style="font-style:italic;font-size:17px;line-height:1.5;margin-top:18px">“' + esc(r.verbatim) + "”</p><dl>" + row("What went wrong", r.failure_detail) +
+      row("What they remembered", r.cue_quotes || "not stated") + row("How they searched", r.query_strategy) + row("Photo type", r.photo_type) + row("Why they needed it", r.retrieval_purpose) +
+      row("Workaround", r.workaround) + row("Outcome", r.outcome) + row("Severity", r.severity + " of 5") + row("Later break", r.secondary_stage) + row("Date (approximate)", r.post_date) +
+      '</dl><a href="' + safeUrl(r.url) + '" target="_blank" rel="noopener">Open the original post ↗</a></div>';
+    $("closedetail").focus();
+  }
+  function render() {
+    $("nav").innerHTML = PAGES.map(function (p, i) { return '<button data-p="' + i + '"' + (p === page ? ' aria-current="page"' : "") + ">" + p + "</button>"; }).join("");
+    $("view").innerHTML = page === PAGES[0] ? viewAsk() : page === PAGES[1] ? viewRanking() : page === PAGES[2] ? viewIncidents() : viewHow();
+    $("askbar").hidden = page !== PAGES[0];
+    $("askbtn").disabled = busy;
+  }
+  function ask(q) {
+    q = (q || "").trim().slice(0, 300);
+    if (!q || busy) return;
+    busy = true; render(); window.scrollTo(0, document.body.scrollHeight);
+    var done = function (res) { busy = false; chat.push({ q: q, res: res }); render(); window.scrollTo(0, document.body.scrollHeight); };
+    fetch("api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q }) })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (res) { if (!res || typeof res.answer !== "string" || !Array.isArray(res.ev)) throw new Error("bad"); done(res); })
+      .catch(function () { done(Engine.fallback(data, q)); });
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-p],[data-q],[data-id],#closedetail");
+    if (!t) return;
+    if (t.id === "closedetail") { $("detail").innerHTML = ""; return; }
+    if (t.dataset.p != null) { page = PAGES[+t.dataset.p]; $("detail").innerHTML = ""; render(); window.scrollTo(0, 0); }
+    else if (t.dataset.q != null) ask(EXAMPLES[+t.dataset.q]);
+    else if (t.dataset.id) showDetail(t.dataset.id);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") $("detail").innerHTML = "";
+    if (e.key === "Enter" && e.target.dataset && e.target.dataset.id) showDetail(e.target.dataset.id);
+  });
+  document.addEventListener("change", function (e) { if (e.target.dataset && e.target.dataset.f) { filt[e.target.dataset.f] = e.target.value; render(); } });
+  $("askform").addEventListener("submit", function (e) { e.preventDefault(); var v = $("askinput").value; $("askinput").value = ""; ask(v); });
+
+  Promise.all([fetch("incidents.json").then(function (r) { return r.json(); }), fetch("stats.json").then(function (r) { return r.json(); })])
+    .then(function (x) {
+      data = Engine.prepare(x[0]); stats = x[1];
+      $("tiles").innerHTML = '<div class="tile"><b style="color:#1b1b1c">' + stats.collected.toLocaleString("en-US") + '</b>posts collected</div><div class="tile"><b style="color:#0041a2">' + stats.labelled +
+        '</b>labelled by AI</div><div class="tile"><b style="color:#ba1a1a">' + data.length + '</b>retrieval incidents</div><div class="tile"><b style="color:#006e2b">' + pct(stats.audit_stage_correct, stats.audit_n) + "</b>audited accuracy</div>";
+      render();
+    })
+    .catch(function () { $("view").textContent = "The evidence could not be loaded. Please refresh the page."; });
+})();
+</script>
+</body>
+</html>

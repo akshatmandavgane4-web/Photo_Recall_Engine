@@ -1,0 +1,8 @@
+# The Streamlit version lives in the same repository; Vercel only needs public/ and api/.
+*.py
+requirements.txt
+.streamlit
+pipeline
+incidents.jsonl
+stats.json
+extraction.md
