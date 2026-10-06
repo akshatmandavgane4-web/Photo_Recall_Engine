@@ -1,12 +1,12 @@
 """Ask-the-evidence interface for the Discovery Engine. Run: streamlit run app.py"""
-import json, os, re
+import html, json, os, re
 from collections import Counter
 from pathlib import Path
 import pandas as pd
 import streamlit as st
 
 HERE = Path(__file__).parent
-st.set_page_config(page_title="Photo Recall · Discovery Engine", layout="wide")
+st.set_page_config(page_title="Photo Recall · Discovery Engine", layout="wide", initial_sidebar_state="expanded")
 try:                                    # hosted: key comes from the platform's secrets
     for k in ("GROQ_API_KEY", "GROQ_MODEL"):
         if k in st.secrets:
@@ -162,24 +162,157 @@ def answer(q):
                 "cited": [x["n"] for x in items[:6]], "ev": items, "llm": False, "stats": block}
 
 
-def show_evidence(res):
+# ---------- look and feel (layout and components follow the Stitch design; all content is computed) ----------
+STAGE_COLOR = {"express": "#B06000", "understand": "#0b57d0", "evaluate": "#006e2b", "refine": "#7b1fa2",
+               "unknown": "#737785", "none": "#737785"}
+SOURCE_COLOR = {"reddit": "#EA4335", "play_store": "#188038", "app_store": "#737785"}
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+html, body, .stApp, .stApp p, .stApp label, .stApp input, .stApp textarea, .stApp h1, .stApp h2, .stApp h3, .stMarkdown, .stButton > button { font-family: 'DM Sans', Arial, sans-serif; }
+.stApp { background: #fcf9f8; }
+header[data-testid="stHeader"] { background: transparent; height: 0; }
+#MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] { visibility: hidden; height: 0; }
+.block-container { padding-top: 1.4rem; padding-bottom: 6rem; max-width: 1280px; }
+.pr-strip { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 999999;
+  background: linear-gradient(90deg,#4285F4 0 25%,#EA4335 25% 50%,#FBBC04 50% 75%,#34A853 75% 100%); }
+section[data-testid="stSidebar"] { background: #f6f3f2; border-right: 1px solid #e5e2e1; }
+section[data-testid="stSidebar"] div[role="radiogroup"] { gap: 4px; }
+section[data-testid="stSidebar"] div[role="radiogroup"] label { padding: 10px 14px; border-radius: 10px; width: 100%; cursor: pointer; }
+section[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child:not(:has([data-testid="stMarkdownContainer"])) { display: none; }
+section[data-testid="stSidebar"] label[data-testid="stRadioOption"] > div > div:first-child:not([data-testid="stMarkdownContainer"]) { display: none; }
+section[data-testid="stSidebar"] div[role="radiogroup"] label p { font-size: 16px; font-weight: 500; color: #424654; }
+section[data-testid="stSidebar"] div[role="radiogroup"] label:hover { background: #eae7e7; }
+section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked), section[data-testid="stSidebar"] label[data-selected="true"] { background: #0b57d0; }
+section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p, section[data-testid="stSidebar"] label[data-selected="true"] p { color: #ffffff; }
+.stButton > button { border-radius: 999px; border: 1px solid #c3c6d6; background: #ffffff; color: #1b1b1c;
+  font-weight: 500; font-size: 14px; padding: 8px 16px; }
+.stButton > button, .stButton > button p { white-space: normal; height: auto; line-height: 1.3; }
+.stButton > button:hover { border-color: #0b57d0; color: #0b57d0; background: #f3f6fd; }
+.pr-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.pr-brand { font-size: 22px; font-weight: 600; color: #1b1b1c; display: flex; align-items: center; gap: 10px; }
+.pr-badge { font-size: 12px; font-weight: 500; color: #424654; background: #eae7e7; border-radius: 999px; padding: 3px 10px; }
+.pr-tiles { display: flex; gap: 8px; flex-wrap: wrap; }
+.pr-tile { background: #ffffff; border: 1px solid #c3c6d6; border-radius: 10px; padding: 6px 12px; font-size: 13px; color: #424654; }
+.pr-tile b { font-size: 20px; font-weight: 700; margin-right: 6px; }
+.pr-h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px 0; color: #1b1b1c; }
+.pr-sub { font-size: 15px; color: #424654; margin-bottom: 18px; }
+.pr-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #424654; margin: 6px 0 10px 0; }
+.pr-card { background: #ffffff; border-radius: 16px; padding: 22px 24px; box-shadow: 0 1px 2px rgba(27,27,28,.06), 0 1px 8px rgba(27,27,28,.04); margin-bottom: 16px; }
+.pr-grid { display: grid; gap: 14px; }
+.pr-user { display: flex; justify-content: flex-end; margin: 10px 0 14px 0; }
+.pr-user span { background: #e5e2e1; border-radius: 18px 18px 4px 18px; padding: 10px 18px; font-size: 16px; max-width: 75%; }
+.pr-answer { font-size: 17px; line-height: 1.55; color: #1b1b1c; }
+.pr-cite { font-size: 12px; font-weight: 600; color: #0041a2; background: #dae2ff; border-radius: 6px; padding: 1px 6px; margin: 0 2px; }
+.pr-panel { background: #f6f3f2; border-radius: 14px; padding: 16px 18px; margin-top: 16px; }
+.pr-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: #e5e2e1; margin: 8px 0 12px 0; }
+.pr-mini { background: #ffffff; border-radius: 10px; padding: 10px 12px; }
+.pr-mini .n { font-size: 26px; font-weight: 700; line-height: 1.15; }
+.pr-mini .l { font-size: 12px; color: #424654; display: flex; align-items: center; gap: 6px; }
+.pr-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.pr-quote { background: #f6f3f2; border-radius: 14px; padding: 14px 16px; }
+.pr-quote .q { font-style: italic; font-size: 15px; line-height: 1.45; margin: 10px 0; }
+.pr-quote a { font-size: 13px; font-weight: 500; color: #0041a2; text-decoration: none; }
+.pr-num { background: #0041a2; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.pr-tag { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; display: inline-flex; align-items: center; gap: 6px; }
+.pr-stage h3 { font-size: 20px; font-weight: 500; margin: 12px 0 6px 0; }
+.pr-stage .big { font-size: 30px; font-weight: 700; }
+.pr-stage p { font-size: 13px; color: #424654; line-height: 1.4; margin: 0; }
+.pr-track { height: 6px; border-radius: 999px; background: #e5e2e1; overflow: hidden; margin-top: 8px; }
+.pr-row { display: flex; justify-content: space-between; font-size: 14px; margin-top: 12px; }
+.pr-note { background: #fff4d6; border-radius: 16px; padding: 18px 22px; font-size: 15px; color: #261a00; }
+.pr-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.pr-table { table-layout: fixed; }
+.pr-table th { text-align: right; font-size: 11px; letter-spacing: .03em; text-transform: uppercase; color: #424654; padding: 10px 4px; background: #f6f3f2; border: none; font-size: 10px; }
+.pr-table th:first-child { width: 26%; }
+.pr-table th:first-child, .pr-table td:first-child { text-align: left; }
+.pr-table td { text-align: right; padding: 12px 6px; border: none; border-bottom: 1px solid #eae7e7; }
+.pr-step .n { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.pr-step .t { font-size: 20px; font-weight: 500; margin: 6px 0; }
+.pr-step p { font-size: 13px; color: #424654; line-height: 1.45; margin: 0; }
+</style><div class="pr-strip"></div>""", unsafe_allow_html=True)
+
+esc = html.escape
+N = len(df)
+
+
+def tag(text, color, dot=False):
+    d = f'<span class="pr-dot" style="background:{color}"></span>' if dot else ""
+    bg = "#f0eded" if dot else color + "1f"
+    fg = "#424654" if dot else color
+    return f'<span class="pr-tag" style="background:{bg};color:{fg}">{d}{esc(text)}</span>'
+
+
+def stage_counts(frame):
+    c = Counter(frame.failure_stage)
+    return [(s, c.get(s, 0)) for s in STAGES] + [("unknown", c.get("unknown", 0) + c.get("none", 0))]
+
+
+def breakdown_html(frame, title):
+    counts, n = stage_counts(frame), max(len(frame), 1)
+    bar = "".join(f'<div style="width:{v / n * 100:.1f}%;background:{STAGE_COLOR[s]}"></div>' for s, v in counts if v)
+    minis = f'<div class="pr-mini"><div class="l">Incidents</div><div class="n">{len(frame)}</div><div class="l">in scope</div></div>'
+    for s, v in counts:
+        name = "No stage" if s == "unknown" else s.capitalize()
+        minis += (f'<div class="pr-mini"><div class="l"><span class="pr-dot" style="background:{STAGE_COLOR[s]}"></span>{name}</div>'
+                  f'<div class="n" style="color:{STAGE_COLOR[s]}">{v}</div><div class="l">{v / n:.0%}</div></div>')
+    return (f'<div class="pr-panel"><div class="pr-label" style="margin:0">{esc(title)}</div><div class="pr-bar">{bar}</div>'
+            f'<div class="pr-grid" style="grid-template-columns:repeat(6,1fr);gap:8px">{minis}</div></div>')
+
+
+def evidence_html(res):
     cited = [x for x in res["ev"] if x["n"] in res["cited"]] or res["ev"][:4]
     if not cited:
-        return
-    with st.expander(f"Evidence ({len(cited)} incidents)", expanded=True):
-        for x in cited:
-            st.markdown(f"**[{x['n']}]** “{x['quote']}”  \n"
-                        f"{x['stage'].capitalize()} · {SOURCE_LABEL.get(x['source'], x['source'])} · "
-                        f"[open source]({x['url']})")
+        return ""
+    cards = ""
+    for x in cited:
+        cards += (f'<div class="pr-quote"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+                  f'<span><span class="pr-num">{x["n"]}</span> {tag(x["stage"].capitalize(), STAGE_COLOR.get(x["stage"], "#737785"))}</span>'
+                  f'{tag(SOURCE_LABEL.get(x["source"], x["source"]), SOURCE_COLOR.get(x["source"], "#737785"), dot=True)}</div>'
+                  f'<div class="q">“{esc(x["quote"])}”</div><a href="{esc(x["url"])}" target="_blank">Open source ↗</a></div>')
+    return (f'<div class="pr-label" style="margin-top:20px">Evidence cited ({len(cited)} source{"s" * (len(cited) != 1)})</div>'
+            f'<div class="pr-grid" style="grid-template-columns:repeat(2,1fr)">{cards}</div>')
 
 
-# ---------- page ----------
-st.title("Discovery Engine: why people fail to find photos they remember")
-st.caption(f"{len(df)} structured retrieval incidents extracted from {stats['collected']:,} public reviews and Reddit "
-           f"posts about Google Photos. Every answer links to its sources.")
-ask, opp, table, how = st.tabs(["Ask the evidence", "Opportunity ranking", "All incidents", "How it works"])
+def scope_frame(q):
+    sub = df
+    for col, vals in find_filters(q).items():
+        narrowed = sub[sub[col].isin(vals)]
+        sub = narrowed if len(narrowed) else sub
+    return sub
 
-with ask:
+
+def answer_card(q, res):
+    text = re.sub(r"\[(\d+)\]", r'<span class="pr-cite">[\1]</span>', esc(res["answer"])).replace("\n", "<br>")
+    sub = scope_frame(q)
+    head = "Answer from the evidence" if res.get("llm") else "Exact counts and closest matches"
+    body = f'<div class="pr-label" style="margin-top:0">{head}</div><div class="pr-answer">{text}</div>'
+    if res["ev"]:
+        body += breakdown_html(sub, f"Incidents by journey stage · {len(sub)} in scope") + evidence_html(res)
+    st.markdown(f'<div class="pr-card">{body}</div>', unsafe_allow_html=True)
+
+
+# ---------- frame ----------
+st.markdown(f"""<div class="pr-top">
+<div class="pr-brand">Photo Recall <span class="pr-badge">Discovery Engine</span></div>
+<div class="pr-tiles">
+<div class="pr-tile"><b style="color:#1b1b1c">{stats['collected']:,}</b>posts collected</div>
+<div class="pr-tile"><b style="color:#0041a2">{stats['labelled']}</b>labelled by AI</div>
+<div class="pr-tile"><b style="color:#ba1a1a">{N}</b>retrieval incidents</div>
+<div class="pr-tile"><b style="color:#006e2b">{stats['audit_stage_correct'] / stats['audit_n']:.0%}</b>audited accuracy</div>
+</div></div>""", unsafe_allow_html=True)
+
+PAGES = ["Ask the evidence", "Opportunity ranking", "All incidents", "How it works"]
+with st.sidebar:
+    st.markdown('<div class="pr-label">Research workspace</div>', unsafe_allow_html=True)
+    page = st.radio("Navigate", PAGES, label_visibility="collapsed")
+    st.markdown('<div style="font-size:12px;color:#424654;margin-top:28px;line-height:1.5">No login. Built from public user '
+                'feedback about Google Photos. Every answer links to its sources.</div>', unsafe_allow_html=True)
+
+if page == "Ask the evidence":
+    st.markdown('<div class="pr-h1">Ask the evidence</div><div class="pr-sub">Ask where retrieval breaks, what people '
+                'remember, or how sources differ. Counts come straight from the incident table.</div>'
+                '<div class="pr-label">Suggested questions</div>', unsafe_allow_html=True)
     examples = ["Where in the search journey do people fail most?", "What do users remember about the photo they want?",
                 "Compare Reddit and Play Store on failure stage", "Show quotes where results were hard to scan",
                 "What happens when people search by a person's name?", "What workarounds do people use?"]
@@ -188,41 +321,65 @@ with ask:
         if cols[i % 3].button(e, width="stretch"):
             st.session_state["pending"] = e
     st.session_state.setdefault("chat", [])
-    for turn in st.session_state["chat"]:
-        with st.chat_message(turn["role"]):
-            st.write(turn["text"])
-            if turn.get("res"):
-                show_evidence(turn["res"])
-    q = st.chat_input("Ask about retrieval failures, what people remember, sources, stages...", max_chars=300)
+    q = st.chat_input("Ask about retrieval failures, what people remember, sources, stages…", max_chars=300)
     q = q or st.session_state.pop("pending", None)
     if q and q.strip():
-        with st.chat_message("user"):
-            st.write(q)
-        with st.chat_message("assistant"):
-            with st.spinner("Reading the evidence"):
-                res = answer(q.strip())
-            st.write(res["answer"])
-            show_evidence(res)
-        st.session_state["chat"] += [{"role": "user", "text": q}, {"role": "assistant", "text": res["answer"], "res": res}]
+        with st.spinner("Reading the evidence"):
+            st.session_state["chat"].append((q.strip(), answer(q.strip())))
+    for q_, res in st.session_state["chat"]:
+        st.markdown(f'<div class="pr-user"><span>{esc(q_)}</span></div>', unsafe_allow_html=True)
+        answer_card(q_, res)
 
-with opp:
-    st.subheader("Where retrieval breaks")
-    st.caption("Opportunity score = share of incidents × mean severity × mean number of cue types the person remembered. "
-               "A high score means people knew a lot and still failed. Groups where nobody stated what they remembered "
-               "have no score.")
-    st.dataframe(score_table({f"{s.capitalize()}: {STAGE_HELP[s]}": df[df.failure_stage == s] for s in STAGES}),
-                 hide_index=True, width="stretch")
+elif page == "Opportunity ranking":
+    st.markdown(f'<div class="pr-h1">Opportunity ranking</div><div class="pr-sub">Where retrieval breaks across the four '
+                f'stages of a search, what people remembered, and how the sources differ. {N} Google Photos incidents.</div>'
+                '<div class="pr-label">Retrieval journey, in order</div>', unsafe_allow_html=True)
+    counts = dict(stage_counts(df)); top = max(STAGES, key=lambda s: counts[s])
+    later = Counter(df.secondary_stage.dropna())
+    cards = ""
+    for i, s in enumerate(STAGES, 1):
+        v, hot = counts[s], s == top
+        border = "border:2px solid #0b57d0;background:#f3f6fd;" if hot else ""
+        flag = '<span class="pr-tag" style="background:#0b57d0;color:#fff">Most incidents</span>' if hot else f'<span class="pr-badge">Stage {i}</span>'
+        extra = f"{later[s]} more as a later break" if later.get(s) else ""
+        cards += (f'<div class="pr-card pr-stage" style="{border}margin:0"><div style="display:flex;justify-content:flex-end">{flag}</div>'
+                  f'<div><span class="big" style="color:{STAGE_COLOR[s]}">{v}</span> <span style="color:#424654">incidents · {v / N:.0%}</span></div>'
+                  f'<div class="pr-track"><div style="width:{v / N * 100:.0f}%;height:100%;background:{STAGE_COLOR[s]}"></div></div>'
+                  f'<h3>{s.capitalize()}</h3><p>{STAGE_HELP[s].capitalize()}.</p>'
+                  f'<p style="margin-top:8px;color:#737785">{extra}</p></div>')
+    st.markdown(f'<div class="pr-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">{cards}</div>', unsafe_allow_html=True)
     other = int((~df.failure_stage.isin(STAGES)).sum())
-    st.caption(f"{other} incidents have no stage (not determinable from the text, or the search succeeded) and are excluded.")
-    st.subheader("What people remembered when they failed")
-    st.caption("An incident counts under every cue type it states.")
-    st.dataframe(score_table({CUE_LABEL[c]: df[df.cues.map(lambda x, c=c: c in x)] for c in CUE_LABEL}),
-                 hide_index=True, width="stretch")
-    st.subheader("Failure stage by source")
-    st.caption("Shown per source so one channel's bias is visible.")
-    st.dataframe(pd.crosstab(df.source.map(SOURCE_LABEL), df.failure_stage), width="stretch")
+    left, right = st.columns([1, 1])
+    with left:
+        cue_n = {c: int(df.cues.map(lambda x, c=c: c in x).sum()) for c in CUE_LABEL}
+        stated = int((df.cues.map(len) > 0).sum()); mx = max(cue_n.values()) or 1
+        rows = "".join(f'<div class="pr-row"><span>{CUE_LABEL[c]}</span><span><b style="color:#0041a2">{n}</b> incidents</span></div>'
+                       f'<div class="pr-track"><div style="width:{n / mx * 100:.0f}%;height:100%;background:#0b57d0"></div></div>'
+                       for c, n in sorted(cue_n.items(), key=lambda kv: -kv[1]) if n)
+        st.markdown(f'<div class="pr-card"><div style="font-size:20px;font-weight:500">What people said they remembered</div>'
+                    f'<div style="font-size:13px;color:#424654">{stated} of {N} incidents state a memory. One incident can state several.</div>{rows}</div>',
+                    unsafe_allow_html=True)
+    with right:
+        cols_ = STAGES + ["unknown"]
+        head = "".join(f"<th>{'None' if s == 'unknown' else s.capitalize()}</th>" for s in cols_)
+        body = ""
+        for src in sorted(df.source.unique(), key=lambda s: -int((df.source == s).sum())):
+            c = dict(stage_counts(df[df.source == src]))
+            body += (f'<tr><td><span class="pr-dot" style="background:{SOURCE_COLOR.get(src, "#737785")}"></span> {SOURCE_LABEL.get(src, src)}</td>'
+                     + "".join(f"<td>{c[s]}</td>" for s in cols_) + "</tr>")
+        tot = dict(stage_counts(df))
+        body += '<tr style="font-weight:700;background:#f6f3f2"><td>Total</td>' + "".join(f"<td>{tot[s]}</td>" for s in cols_) + "</tr>"
+        st.markdown(f'<div class="pr-card"><div style="font-size:20px;font-weight:500">Failure stage by source</div>'
+                    f'<div style="font-size:13px;color:#424654;margin-bottom:12px">Shown per source so one channel\'s bias is visible. '
+                    f'{other} incidents have no determinable stage.</div><table class="pr-table"><tr><th>Source</th>{head}</tr>{body}</table></div>',
+                    unsafe_allow_html=True)
+    st.markdown('<div class="pr-note"><b>Read with care.</b> The Reddit threads were picked from discussions of search quality, so '
+                '<i>Understand</i> is over-represented. Treat this ranking as hypotheses to check with users, not as proof.</div>',
+                unsafe_allow_html=True)
 
-with table:
+elif page == "All incidents":
+    st.markdown('<div class="pr-h1">All incidents</div><div class="pr-sub">Every structured incident, with its quote and a link '
+                'to the original post.</div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     fs = c1.multiselect("Failure stage", sorted(df.failure_stage.unique()))
     so = c2.multiselect("Source", sorted(df.source.unique()), format_func=lambda s: SOURCE_LABEL.get(s, s))
@@ -233,44 +390,50 @@ with table:
     if so: v = v[v.source.isin(so)]
     if pt: v = v[v.photo_type.isin(pt)]
     if cu: v = v[v.cues.map(lambda x: any(c in x for c in cu))]
-    st.caption(f"{len(v)} of {len(df)} incidents")
+    st.markdown(f'<div class="pr-label">{len(v)} of {N} incidents</div>', unsafe_allow_html=True)
     show = v.assign(Source=v.source.map(SOURCE_LABEL), Remembered=v.cue_quotes)[
         ["failure_stage", "Source", "photo_type", "outcome", "severity", "Remembered", "failure_detail", "verbatim",
          "post_date", "url"]]
     st.dataframe(show.rename(columns={"failure_stage": "Stage", "photo_type": "Photo type", "outcome": "Outcome",
                                       "severity": "Severity", "failure_detail": "What went wrong", "verbatim": "Quote",
                                       "post_date": "Date (approx.)", "url": "Link"}),
-                 hide_index=True, width="stretch", height=560,
-                 column_config={"Link": st.column_config.LinkColumn(display_text="open")})
+                 hide_index=True, width="stretch", height=600,
+                 column_config={"Link": st.column_config.LinkColumn(display_text="open"),
+                                "Severity": st.column_config.ProgressColumn(min_value=0, max_value=5, format="%d")})
 
-with how:
-    L = stats["labels"]
-    st.markdown(f"""
-**Pipeline**
-
-1. **Collect** {stats['collected']:,} public posts: Play Store reviews ({stats['sources_collected']['play_store']:,}),
-   App Store reviews ({stats['sources_collected']['app_store']:,}) and 16 Reddit threads
-   ({stats['sources_collected']['reddit']} posts and replies). Author names are hashed.
-2. **Keyword pre-filter** keeps {stats['keyword_pass']:,} posts that mention finding or searching.
-3. **Label and extract** with a language model, one call per post, into a fixed schema. {stats['labelled']} posts were
-   labelled: {L['not_relevant']} not relevant, {L['feature_request']} feature requests, {L['data_loss']} data loss
-   (the photo no longer exists, so it is not a retrieval failure), {L['rejected']} rejected by validation,
-   {L['incident']} retrieval incidents.
-4. **Validate**: values must come from the allowed lists, and every quote must appear word for word in the source post.
-5. **Audit**: {stats['audit_n']} random machine-labelled incidents were checked by hand;
-   {stats['audit_stage_correct']} had the correct failure stage
-   ({stats['audit_stage_correct'] / stats['audit_n']:.0%}). Errors found were corrected, leaving {stats['incidents']} incidents.
-6. **Score and answer**: counts are computed directly from the table; the language model only words the answer from
-   the evidence it is shown.
-
-**The four stages**: Express (say what you remember) → Understand (the product finds it) → Evaluate (you recognize it)
-→ Refine (you adjust after a miss).
-
-**Limits to keep in mind**
-
-- Small sample, and the Reddit threads were hand-picked from discussions of search quality, so "Understand" failures
-  are over-represented. Treat the ranking as hypotheses for user interviews, not as proof.
-- People who post publicly skew towards frustrated, English-speaking, heavy users.
-- Most posts do not say what kind of photo was sought or what the person remembered.
-- Reddit dates are approximate. Extraction used more than one model: {", ".join(f"{k} ({v})" for k, v in stats['models'].items())}.
-""")
+else:
+    L = stats["labels"]; sc = stats["sources_collected"]
+    st.markdown('<div class="pr-h1">How it works</div><div class="pr-sub">How public reviews and posts are collected, filtered, '
+                'labelled by AI and audited.</div><div class="pr-label">Pipeline</div>', unsafe_allow_html=True)
+    steps = [(f"{stats['collected']:,}", "#1b1b1c", "Collect", "Public posts and reviews about Google Photos. Author names are hashed."),
+             (f"{stats['keyword_pass']:,}", "#1b1b1c", "Filter", "Keep posts that mention finding or searching for photos."),
+             (f"{stats['labelled']}", "#0041a2", "Label", "A language model reads each post, one call per post, and sorts it."),
+             (f"{stats['incidents']}", "#ba1a1a", "Extract", f"Retrieval incidents in a fixed schema. {N} are about Google Photos."),
+             (f"{stats['audit_stage_correct'] / stats['audit_n']:.0%}", "#006e2b", "Audit",
+              f"{stats['audit_stage_correct']} of {stats['audit_n']} randomly sampled failure stages were correct when checked by hand.")]
+    cards = "".join(f'<div class="pr-card pr-step" style="margin:0"><span class="pr-badge">Step {i}</span>'
+                    f'<div class="n" style="color:{c};margin-top:10px">{n}</div><div class="t">{t}</div><p>{d}</p></div>'
+                    for i, (n, c, t, d) in enumerate(steps, 1))
+    st.markdown(f'<div class="pr-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">{cards}</div>', unsafe_allow_html=True)
+    tot = sum(sc.values())
+    src_rows = "".join(f'<div class="pr-row"><span><span class="pr-dot" style="background:{SOURCE_COLOR.get(k, "#737785")}"></span> '
+                       f'{SOURCE_LABEL.get(k, k)}</span><span><b>{n:,}</b> ({n / tot:.0%})</span></div><div class="pr-track">'
+                       f'<div style="width:{n / tot * 100:.0f}%;height:100%;background:{SOURCE_COLOR.get(k, "#737785")}"></div></div>'
+                       for k, n in sorted(sc.items(), key=lambda kv: -kv[1]))
+    three = (f'<div class="pr-card" style="margin:0"><div style="font-size:20px;font-weight:500">Sources</div>{src_rows}'
+             f'<p style="font-size:13px;color:#424654;margin-top:14px">Reddit is 16 threads, split into posts and replies.</p></div>'
+             f'<div class="pr-card" style="margin:0"><div style="font-size:20px;font-weight:500">Quality checks</div>'
+             f'<div class="pr-panel"><b>Quotes are verbatim.</b><br><span style="font-size:13px;color:#424654">Every quote must appear word for word in the source post, or the record is rejected.</span></div>'
+             f'<div class="pr-panel"><b>Values are constrained.</b><br><span style="font-size:13px;color:#424654">Stage, photo type and cue types come from fixed lists. {L["rejected"]} records failed validation and were dropped.</span></div>'
+             f'<div class="pr-panel"><b>What was set aside.</b><br><span style="font-size:13px;color:#424654">{L["not_relevant"]} not relevant, {L["feature_request"]} feature requests, {L["data_loss"]} about lost photos (nothing to retrieve).</span></div></div>'
+             f'<div class="pr-card" style="margin:0"><div style="font-size:20px;font-weight:500">Limits</div>'
+             f'<p style="font-size:14px;line-height:1.5;margin-top:12px"><b>Small sample.</b> {stats["incidents"]} incidents; {stats["keyword_pass"] - stats["labelled"]:,} filtered posts are not yet labelled.</p>'
+             f'<p style="font-size:14px;line-height:1.5"><b>Skewed.</b> Reddit threads came from search-quality discussions; public posters are mostly frustrated, English-speaking, heavy users.</p>'
+             f'<p style="font-size:14px;line-height:1.5"><b>Thin detail.</b> Most posts do not say what kind of photo was sought or what was remembered.</p>'
+             f'<p style="font-size:14px;line-height:1.5"><b>More than one labeller.</b> {", ".join(f"{esc(k)} ({v})" for k, v in stats["models"].items())}.</p></div>')
+    st.markdown(f'<div class="pr-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">{three}</div>'
+                '<div class="pr-label">The four journey stages</div>', unsafe_allow_html=True)
+    cards = "".join(f'<div class="pr-card pr-stage" style="margin:0"><span class="pr-badge">Stage {i}</span>'
+                    f'<h3 style="color:{STAGE_COLOR[s]}">{s.capitalize()}</h3><p>{STAGE_HELP[s].capitalize()}.</p></div>'
+                    for i, s in enumerate(STAGES, 1))
+    st.markdown(f'<div class="pr-grid" style="grid-template-columns:repeat(4,1fr)">{cards}</div>', unsafe_allow_html=True)
